@@ -1,0 +1,171 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "padding": 10,
+  "width": 400,
+  "height": 400,
+  "title": {
+    "text": "Deaths within 28 days of positive test by date reported",
+    "anchor": "start",
+    "encode": {
+      "title": {
+        "enter": {
+          "fontSize": {
+            "value": 20
+          },
+          "fontWeight": {
+            "value": 600
+          }
+        }
+      }
+    }
+  },
+  "data": [
+    {
+      "name": "daysOfWeek",
+      "values": [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday"
+      ]
+    },
+    {
+      "name": "timeSeries",
+      "format": {
+        "property": "data",
+        "parse": {
+          "date": "date:%Y-%m-%d"
+        }
+      },
+      "url": "https://api.coronavirus.data.gov.uk/v1/data?filters=areaType%3Doverview&structure=%7B%22areaType%22%3A+%22areaType%22%2C+%22areaName%22%3A+%22areaName%22%2C+%22date%22%3A+%22date%22%2C+%22newDeaths28DaysByPublishDate%22%3A+%22newDeaths28DaysByPublishDate%22%2C+%22newDeaths28DaysByDeathDate%22%3A+%22newDeaths28DaysByDeathDate%22%7D",
+      "transform": [
+        {
+          "type": "timeunit",
+          "field": "date",
+          "units": [
+            "year",
+            "week"
+          ],
+          "interval": false,
+          "as": [
+            "yearWeek0",
+            "yearWeek1"
+          ]
+        },
+        {
+          "type": "extent",
+          "field": "yearWeek0",
+          "signal": "extentYearWeek0"
+        },
+        {
+          "type": "formula",
+          "expr": "day(datum.date)",
+          "as": "dayOfWeekIndex"
+        },
+        {
+          "type": "formula",
+          "expr": "data('daysOfWeek')[datum.dayOfWeekIndex]['data']",
+          "as": "dayOfWeek"
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "point",
+      "domain": {
+        "data": "daysOfWeek",
+        "field": "data"
+      },
+      "range": "width"
+    },
+    {
+      "name": "y",
+      "type": "linear",
+      "domain": {
+        "data": "timeSeries",
+        "fields": [
+          "newDeaths28DaysByPublishDate",
+          "newDeaths28DaysByDeathDate"
+        ]
+      },
+      "range": "height",
+      "nice": true
+    }
+  ],
+  "axes": [
+    {
+      "scale": "x",
+      "orient": "bottom"
+    },
+    {
+      "scale": "y",
+      "orient": "left"
+    }
+  ],
+  "marks": [
+    {
+      "type": "group",
+      "from": {
+        "facet": {
+          "name": "timeSeriesByYearWeek0",
+          "data": "timeSeries",
+          "groupby": "yearWeek0"
+        }
+      },
+      "sort": {
+        "field": "datum.yearWeek0",
+        "order": "ascending"
+      },
+      "encode": {
+        "enter": {
+          "width": {
+            "signal": "width"
+          },
+          "height": {
+            "signal": "height"
+          },
+          "stroke": {
+            "value": "rgb(192,192,192)"
+          }
+        }
+      },
+      "marks": [
+        {
+          "type": "line",
+          "from": {
+            "data": "timeSeriesByYearWeek0"
+          },
+          "encode": {
+            "enter": {
+              "x": {
+                "scale": "x",
+                "field": "dayOfWeek"
+              },
+              "y": {
+                "scale": "y",
+                "field": "newDeaths28DaysByPublishDate"
+              },
+              "stroke": {
+                "value": "rgb(0,0,0)"
+              },
+              "strokeOpacity": [
+                {
+                  "test": "time(datum.yearWeek0) == extentYearWeek0[1]",
+                  "value": 1
+                },
+                {
+                  "value": 0.2
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,326 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "padding": 10,
+  "title": {
+    "text": "Deaths within 28 days of positive test",
+    "anchor": "start",
+    "encode": {
+      "title": {
+        "enter": {
+          "fontSize": {
+            "value": 26
+          },
+          "fontWeight": {
+            "value": 600
+          }
+        }
+      }
+    }
+  },
+  "signals": [
+    {
+      "name": "chartWidth",
+      "value": 200
+    },
+    {
+      "name": "chartHeight",
+      "value": 200
+    }
+  ],
+  "data": [
+    {
+      "name": "daysOfWeek",
+      "values": [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday"
+      ]
+    },
+    {
+      "name": "timeSeries",
+      "format": {
+        "property": "data",
+        "parse": {
+          "date": "date:%Y-%m-%d"
+        }
+      },
+      "url": "https://api.coronavirus.data.gov.uk/v1/data?filters=areaType%3Doverview&structure=%7B%22areaType%22%3A+%22areaType%22%2C+%22areaName%22%3A+%22areaName%22%2C+%22date%22%3A+%22date%22%2C+%22newDeaths28DaysByPublishDate%22%3A+%22newDeaths28DaysByPublishDate%22%2C+%22newDeaths28DaysByDeathDate%22%3A+%22newDeaths28DaysByDeathDate%22%7D",
+      "transform": [
+        {
+          "type": "formula",
+          "expr": "day(datum.date)",
+          "as": "dayOfWeekIndex"
+        },
+        {
+          "type": "formula",
+          "expr": "data('daysOfWeek')[datum.dayOfWeekIndex]['data']",
+          "as": "dayOfWeek"
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "time",
+      "domain": {
+        "data": "timeSeries",
+        "field": "date"
+      },
+      "range": [
+        0,
+        {
+          "signal": "chartWidth"
+        }
+      ],
+      "nice": "month",
+      "round": true
+    },
+    {
+      "name": "y",
+      "type": "linear",
+      "domain": {
+        "data": "timeSeries",
+        "fields": [
+          "newDeaths28DaysByPublishDate",
+          "newDeaths28DaysByDeathDate"
+        ]
+      },
+      "range": [
+        {
+          "signal": "chartHeight"
+        },
+        0
+      ],
+      "nice": true,
+      "round": true
+    },
+    {
+      "name": "colour",
+      "type": "ordinal",
+      "domain": [
+        "By date reported",
+        "By date of death"
+      ],
+      "range": [
+        "rgb(0,0,0)",
+        "rgb(255,0,0)"
+      ]
+    }
+  ],
+  "legends": [
+    {
+      "stroke": "colour"
+    }
+  ],
+  "marks": [
+    {
+      "type": "group",
+      "layout": {
+        "padding": {
+          "column": 10
+        }
+      },
+      "axes": [
+        {
+          "scale": "y",
+          "orient": "left"
+        }
+      ],
+      "marks": [
+        {
+          "type": "group",
+          "role": "column-header",
+          "from": {
+            "data": "daysOfWeek"
+          },
+          "title": {
+            "text": {
+              "signal": "parent.data"
+            }
+          },
+          "encode": {
+            "enter": {
+              "width": {
+                "signal": "chartWidth"
+              }
+            }
+          }
+        },
+        {
+          "type": "group",
+          "from": {
+            "facet": {
+              "name": "timeSeriesByDayOfWeek",
+              "data": "timeSeries",
+              "groupby": "dayOfWeekIndex"
+            }
+          },
+          "sort": {
+            "field": "datum.dayOfWeekIndex",
+            "order": "ascending"
+          },
+          "data": [
+            {
+              "name": "summary",
+              "source": "timeSeriesByDayOfWeek",
+              "transform": [
+                {
+                  "type": "aggregate",
+                  "fields": [
+                    "newDeaths28DaysByPublishDate",
+                    "newDeaths28DaysByDeathDate",
+                    "date",
+                    "date"
+                  ],
+                  "ops": [
+                    "mean",
+                    "mean",
+                    "min",
+                    "max"
+                  ]
+                }
+              ]
+            }
+          ],
+          "axes": [
+            {
+              "scale": "x",
+              "orient": "bottom",
+              "format": "%B"
+            }
+          ],
+          "encode": {
+            "enter": {
+              "width": {
+                "signal": "chartWidth"
+              },
+              "height": {
+                "signal": "chartHeight"
+              },
+              "stroke": {
+                "value": "rgb(192,192,192)"
+              }
+            }
+          },
+          "marks": [
+            {
+              "type": "rule",
+              "from": {
+                "data": "summary"
+              },
+              "encode": {
+                "enter": {
+                  "x": {
+                    "scale": "x",
+                    "field": "min_date"
+                  },
+                  "y": {
+                    "scale": "y",
+                    "field": "mean_newDeaths28DaysByPublishDate"
+                  },
+                  "x2": {
+                    "scale": "x",
+                    "field": "max_date"
+                  },
+                  "y2": {
+                    "scale": "y",
+                    "field": "mean_newDeaths28DaysByPublishDate"
+                  },
+                  "stroke": {
+                    "value": "By date reported",
+                    "scale": "colour"
+                  }
+                }
+              }
+            },
+            {
+              "type": "line",
+              "from": {
+                "data": "timeSeriesByDayOfWeek"
+              },
+              "encode": {
+                "enter": {
+                  "interpolate": {
+                    "value": "step"
+                  },
+                  "x": {
+                    "scale": "x",
+                    "field": "date"
+                  },
+                  "y": {
+                    "scale": "y",
+                    "field": "newDeaths28DaysByPublishDate"
+                  },
+                  "stroke": {
+                    "value": "By date reported",
+                    "scale": "colour"
+                  }
+                }
+              }
+            },
+            {
+              "type": "rule",
+              "from": {
+                "data": "summary"
+              },
+              "encode": {
+                "enter": {
+                  "x": {
+                    "scale": "x",
+                    "field": "min_date"
+                  },
+                  "y": {
+                    "scale": "y",
+                    "field": "mean_newDeaths28DaysByDeathDate"
+                  },
+                  "x2": {
+                    "scale": "x",
+                    "field": "max_date"
+                  },
+                  "y2": {
+                    "scale": "y",
+                    "field": "mean_newDeaths28DaysByDeathDate"
+                  },
+                  "stroke": {
+                    "value": "By date of death",
+                    "scale": "colour"
+                  }
+                }
+              }
+            },
+            {
+              "type": "line",
+              "from": {
+                "data": "timeSeriesByDayOfWeek"
+              },
+              "encode": {
+                "enter": {
+                  "interpolate": {
+                    "value": "step"
+                  },
+                  "x": {
+                    "scale": "x",
+                    "field": "date"
+                  },
+                  "y": {
+                    "scale": "y",
+                    "field": "newDeaths28DaysByDeathDate"
+                  },
+                  "stroke": {
+                    "value": "By date of death",
+                    "scale": "colour"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
